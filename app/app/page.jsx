@@ -1,217 +1,265 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { PageWrap, SiteFooter, SiteHeader } from "../../components/SiteShell";
+import { saveAnalysis } from "../../lib/analysis-storage";
 
-class AppPage extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      documentText: '',
-      isAnalysing: false,
-      analysisComplete: false,
-      inputMode: 'paste' // 'paste' or 'voice'
-    };
-  }
+const SAMPLE_DOCUMENT = `This rent agreement is valid for 11 months. If the tenant leaves before 11 months, the full security deposit will be forfeited. The landlord may increase rent at any time with 7 days notice. Any dispute will be decided only by arbitration selected by the landlord.`;
 
-  handleTextChange = (e) => {
-    this.setState({ documentText: e.target.value });
-  };
+export default function AppPage() {
+  const [mode, setMode] = useState("paste");
+  const [language, setLanguage] = useState("bilingual");
+  const [text, setText] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [ocrNote, setOcrNote] = useState("");
+  const [error, setError] = useState("");
+  const [isSpeechReady, setIsSpeechReady] = useState(false);
+  const recognitionRef = useRef(null);
+  const router = useRouter();
 
-  handleAnalyse = () => {
-    if (this.state.documentText.trim()) {
-      this.setState({ isAnalysing: true });
-      // Simulate API call - in production, this would call your backend
-      setTimeout(() => {
-        this.setState({ isAnalysing: false, analysisComplete: true });
-      }, 3000);
+  const charCount = useMemo(() => text.trim().length, [text]);
+
+  useEffect(() => {
+    const Recognition = typeof window !== "undefined" ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
+    setIsSpeechReady(Boolean(Recognition));
+  }, []);
+
+  function startVoiceInput() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setError("Voice input is not supported in this browser. Try Chrome on Android/Desktop.");
+      return;
     }
-  };
 
-  handleVoiceInput = () => {
-    // Voice input would use Web Speech API here
-    alert('Voice input feature - would activate Hindi Web Speech API');
-  };
+    setError("");
+    const recognition = new Recognition();
+    recognition.lang = language === "english" ? "en-IN" : "hi-IN";
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-  render() {
-    return (
-      <div className="flex flex-col min-h-screen bg-[#F4F1EB]">
-        <Navbar />
-        <main className="flex-grow py-12 px-4">
-          <div className="max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-[#1A2B4A] font-georgia mb-2">
-                Analyse Your Document
-              </h1>
-              <p className="text-[#E8762D] text-lg">
-                अपना दस्तावेज़ विश्लेषित करें
-              </p>
-            </div>
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => {
+      setError("Microphone access failed. Please allow mic permissions and try again.");
+      setIsListening(false);
+    };
 
-            {/* Input Mode Toggle */}
-            <div className="flex justify-center mb-6">
-              <div className="bg-white rounded-lg shadow p-2 inline-flex">
-                <button
-                  onClick={() => this.setState({ inputMode: 'paste' })}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                    this.state.inputMode === 'paste'
-                      ? 'bg-[#E8762D] text-white'
-                      : 'text-[#1A2B4A] hover:bg-gray-100'
-                  }`}
-                >
-                  📄 Paste Text
-                </button>
-                <button
-                  onClick={() => this.setState({ inputMode: 'voice' })}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                    this.state.inputMode === 'voice'
-                      ? 'bg-[#E8762D] text-white'
-                      : 'text-[#1A2B4A] hover:bg-gray-100'
-                  }`}
-                >
-                  🎤 Voice Input (हिंदी)
-                </button>
-              </div>
-            </div>
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        transcript += event.results[i][0].transcript;
+      }
+      setText((prev) => `${prev} ${transcript}`.trim());
+    };
 
-            {/* Document Input */}
-            <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-              {this.state.inputMode === 'paste' ? (
-                <textarea
-                  value={this.state.documentText}
-                  onChange={this.handleTextChange}
-                  placeholder="Paste your legal document here (rent agreement, offer letter, T&C, RTI, government notice, etc.)"
-                  className="w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:border-[#E8762D] focus:outline-none resize-none"
-                />
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">🎤</div>
-                  <p className="text-[#1A2B4A] text-lg mb-4">
-                    Click the button below to speak your document in Hindi
-                  </p>
-                  <button
-                    onClick={this.handleVoiceInput}
-                    className="bg-[#E8762D] hover:bg-[#d66520] text-white font-bold py-3 px-6 rounded-lg transition-all"
-                  >
-                    Start Speaking / बोलना शुरू करें
-                  </button>
-                </div>
-              )}
-
-              {/* Analyse Button */}
-              {this.state.inputMode === 'paste' && (
-                <button
-                  onClick={this.handleAnalyse}
-                  disabled={!this.state.documentText.trim() || this.state.isAnalysing}
-                  className={`w-full mt-6 font-bold py-4 px-8 rounded-lg text-lg transition-all duration-300 ${
-                    this.state.documentText.trim() && !this.state.isAnalysing
-                      ? 'bg-[#E8762D] hover:bg-[#d66520] text-white transform hover:scale-105 shadow-lg'
-                      : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                  }`}
-                >
-                  {this.state.isAnalysing ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Analysing with AI Sabha...
-                    </span>
-                  ) : (
-                    '⚖️ Get AI Analysis / विश्लेषण प्राप्त करें'
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Features Info */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-3xl mb-2">⚖️</div>
-                <h3 className="font-bold text-[#1A2B4A]">Vakil Analysis</h3>
-                <p className="text-sm text-gray-600">Legal risk identification</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-3xl mb-2">🧑‍🌾</div>
-                <h3 className="font-bold text-[#1A2B4A]">Aam Aadmi Explanation</h3>
-                <p className="text-sm text-gray-600">Simple Hindi translation</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-3xl mb-2">🏛️</div>
-                <h3 className="font-bold text-[#1A2B4A]">Nyayaadheesh Verdict</h3>
-                <p className="text-sm text-gray-600">Risk score + action items</p>
-              </div>
-            </div>
-
-            {/* Sample Analysis Result (shown after analysis) */}
-            {this.state.analysisComplete && (
-              <div className="mt-8 bg-white rounded-xl shadow-lg p-8">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-[#1A2B4A] font-georgia">
-                    Analysis Complete
-                  </h2>
-                  <p className="text-[#E8762D]">विश्लेषण पूर्ण हुआ</p>
-                </div>
-
-                {/* Risk Score */}
-                <div className="bg-[#1A2B4A] text-white rounded-lg p-6 mb-6 text-center">
-                  <div className="text-5xl font-bold text-[#E8762D] mb-2">7/10</div>
-                  <div className="text-[#F5B942]">High Risk Document</div>
-                  <p className="text-sm text-[#F4F1EB] mt-2">
-                    ⚠️ Several concerning clauses detected
-                  </p>
-                </div>
-
-                {/* Three Voices Output */}
-                <div className="grid md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-[#F4F1EB] rounded-lg p-4 border-l-4 border-[#E8762D]">
-                    <div className="flex items-center mb-2">
-                      <span className="text-2xl mr-2">⚖️</span>
-                      <h4 className="font-bold text-[#1A2B4A]">Vakil Says</h4>
-                    </div>
-                    <p className="text-sm text-gray-700">
-                      This agreement contains several one-sided clauses. The deposit forfeiture
-                      clause may be challenged under rental laws...
-                    </p>
-                  </div>
-
-                  <div className="bg-[#F4F1EB] rounded-lg p-4 border-l-4 border-[#F5B942]">
-                    <div className="flex items-center mb-2">
-                      <span className="text-2xl mr-2">🧑‍🌾</span>
-                      <h4 className="font-bold text-[#1A2B4A]">Aam Aadmi Says</h4>
-                    </div>
-                    <p className="text-sm text-gray-700">
-                      भाई, इसमें कुछ बातें ठीक नहीं लग रही। जमानत राशि जब्त करने की शर्त गलत है...
-                    </p>
-                  </div>
-
-                  <div className="bg-[#F4F1EB] rounded-lg p-4 border-l-4 border-[#1A2B4A]">
-                    <div className="flex items-center mb-2">
-                      <span className="text-2xl mr-2">🏛️</span>
-                      <h4 className="font-bold text-[#1A2B4A]">Nyayaadheesh Says</h4>
-                    </div>
-                    <p className="text-sm text-gray-700">
-                      <strong>Action:</strong> Negotiate clauses 3, 5, 7. Do not sign as-is.
-                      <br />
-                      <strong>Summary:</strong> Modify before signing / संशोधन के बाद ही हस्ताक्षर करें
-                    </p>
-                  </div>
-                </div>
-
-                {/* Download PDF */}
-                <button className="w-full bg-[#1A2B4A] hover:bg-[#2a3b5a] text-white font-bold py-3 px-6 rounded-lg transition-all">
-                  📄 Download PDF Summary / PDF डाउनलोड करें
-                </button>
-              </div>
-            )}
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+    recognitionRef.current = recognition;
+    recognition.start();
   }
-}
 
-export default AppPage;
+  function stopVoiceInput() {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  }
+
+  async function extractTextFromImage(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      setError("");
+      setOcrNote("Reading image... this can take a few seconds.");
+      setIsExtracting(true);
+
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng+hin");
+      const { data } = await worker.recognize(file);
+      await worker.terminate();
+
+      const extracted = (data?.text || "").trim();
+      if (!extracted) {
+        throw new Error("No text found in image. Try a clearer image with better lighting.");
+      }
+
+      setText((prev) => `${prev}\n${extracted}`.trim());
+      setOcrNote(`Extracted text from ${file.name}.`);
+    } catch (ocrError) {
+      setError(ocrError.message || "Could not extract text from image.");
+      setOcrNote("");
+    } finally {
+      setIsExtracting(false);
+      event.target.value = "";
+    }
+  }
+
+  async function runAnalysis() {
+    if (!text.trim()) {
+      setError("Please add document text before analysis.");
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setError("");
+
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentText: text,
+          language,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not analyze document right now.");
+      }
+
+      const payload = await response.json();
+      saveAnalysis(payload);
+      router.push("/results");
+    } catch (requestError) {
+      setError(requestError.message || "Unexpected error while analyzing document.");
+    } finally {
+      setIsAnalyzing(false);
+      stopVoiceInput();
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader compact />
+      <main className="flex-1 py-10 md:py-14">
+        <PageWrap>
+          <div className="mb-8 reveal">
+            <p className="kicker">Document Lab</p>
+            <h1 className="font-title mt-2 text-4xl text-[color:var(--navy)] md:text-5xl">Upload once. Understand fully.</h1>
+            <p className="mt-3 max-w-3xl text-[color:var(--ink)]/80">
+              Paste your legal text or use Hindi voice input. NyayaSetu sends your document to Vakil,
+              Aam Aadmi, and Nyayaadheesh in parallel and returns a structured verdict.
+            </p>
+          </div>
+
+          <section className="panel rounded-3xl p-5 md:p-8">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMode("paste")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                  mode === "paste"
+                    ? "bg-[color:var(--saffron)] text-white"
+                    : "border border-[color:var(--navy)]/25 bg-white text-[color:var(--navy)]"
+                }`}
+              >
+                Paste Text
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("voice")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                  mode === "voice"
+                    ? "bg-[color:var(--saffron)] text-white"
+                    : "border border-[color:var(--navy)]/25 bg-white text-[color:var(--navy)]"
+                }`}
+              >
+                Voice Input
+              </button>
+
+              <div className="ml-auto flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLanguage("bilingual")}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    language === "bilingual" ? "bg-[color:var(--navy)] text-white" : "bg-white text-[color:var(--navy)]"
+                  }`}
+                >
+                  Hindi + English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("english")}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    language === "english" ? "bg-[color:var(--navy)] text-white" : "bg-white text-[color:var(--navy)]"
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto]">
+              <textarea
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                placeholder="Paste legal text here. Example: rent agreement, internship bond, offer letter, RTI notice..."
+                className="min-h-[280px] w-full rounded-2xl border border-[color:var(--navy)]/20 bg-white px-4 py-3 text-sm leading-relaxed text-[color:var(--ink)] outline-none ring-[color:var(--saffron)] transition focus:ring"
+              />
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => setText(SAMPLE_DOCUMENT)}
+                  className="rounded-xl border border-[color:var(--navy)]/25 bg-white px-4 py-2 text-sm text-[color:var(--navy)]"
+                >
+                  Use Sample
+                </button>
+                <label className="rounded-xl border border-[color:var(--navy)]/25 bg-white px-4 py-2 text-center text-sm text-[color:var(--navy)] hover:cursor-pointer">
+                  {isExtracting ? "Extracting Text..." : "Upload Image (OCR)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={extractTextFromImage}
+                    disabled={isExtracting}
+                    className="hidden"
+                  />
+                </label>
+                {mode === "voice" ? (
+                  <button
+                    type="button"
+                    onClick={isListening ? stopVoiceInput : startVoiceInput}
+                    disabled={!isSpeechReady}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${
+                      isListening ? "bg-red-600" : "bg-[color:var(--saffron)]"
+                    } disabled:opacity-50`}
+                  >
+                    {isListening ? "Stop Mic" : "Start Mic"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={runAnalysis}
+                  disabled={isAnalyzing}
+                  className="rounded-xl bg-[color:var(--navy)] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  {isAnalyzing ? "Analysing..." : "Run AI Sabha"}
+                </button>
+                <Link
+                  href="/results"
+                  className="rounded-xl border border-[color:var(--navy)]/25 bg-white px-4 py-2 text-center text-sm text-[color:var(--navy)]"
+                >
+                  View Last Result
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-[color:var(--ink)]/65">
+              <p>{charCount} characters</p>
+              <p className="font-hindi">कोई लॉगिन नहीं, कोई डेटा स्टोरेज नहीं</p>
+            </div>
+
+            {ocrNote ? <p className="mt-3 rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-800">{ocrNote}</p> : null}
+
+            {error ? (
+              <p className="mt-3 rounded-xl bg-red-100 px-3 py-2 text-sm text-red-700">{error}</p>
+            ) : null}
+          </section>
+        </PageWrap>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}

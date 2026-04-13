@@ -177,16 +177,13 @@ class Contact extends React.Component {
             <div className="mt-12 text-center">
               <div className="bg-[#1A2B4A] text-white rounded-xl p-8">
                 <h3 className="text-2xl font-bold mb-4 font-georgia">
-                  Open Innovation Hackathon 2025
+                  NyayaSetu Mission
                 </h3>
                 <p className="text-[#F4F1EB] mb-4">
                   NyayaSetu is built for the Open Innovation track, addressing the
                   critical gap in access to legal aid in India.
                 </p>
                 <div className="flex flex-wrap justify-center gap-4 text-[#F5B942]">
-                  <span className="bg-[#1A2B4A] border border-[#F5B942] px-4 py-2 rounded-full text-sm">
-                    🏆 Greater Noida
-                  </span>
                   <span className="bg-[#1A2B4A] border border-[#F5B942] px-4 py-2 rounded-full text-sm">
                     💻 Full Stack + AI Track
                   </span>

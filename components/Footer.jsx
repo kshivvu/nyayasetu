@@ -86,7 +86,7 @@ class Footer extends React.Component {
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p className="text-[#F4F1EB] text-sm text-center md:text-left mb-4 md:mb-0">
-                © {currentYear} NyayaSetu. Built for Open Innovation Hackathon 2025.
+                © {currentYear} NyayaSetu. न्याय सबके लिए — Justice for All.
               </p>
               <div className="flex items-center space-x-4">
                 <span className="text-[#F5B942] text-sm">🇮🇳 Made with pride in India</span>

@@ -223,9 +223,6 @@ class About extends React.Component {
             <p className="text-2xl md:text-3xl font-bold text-white font-georgia">
               न्याय सबके लिए — Justice for All
             </p>
-            <p className="text-white mt-4">
-              Built for Open Innovation Hackathon 2025 · Greater Noida
-            </p>
           </div>
         </section>
       </div>

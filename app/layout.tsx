@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Manrope, Noto_Serif_Devanagari } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const titleFont = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
+  weight: ["600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const bodyFont = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const hindiFont = Noto_Serif_Devanagari({
+  variable: "--font-devanagari",
+  subsets: ["devanagari", "latin"],
+  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "NyayaSetu - न्याय सबके लिए",
-  description: "AI-Powered Legal Aid for Every Indian. Justice for All.",
+  title: "NyayaSetu | न्याय सबके लिए",
+  description:
+    "AI-powered legal aid for every Indian. Understand any legal document with a three-voice AI Sabha.",
 };
 
 export default function RootLayout({
@@ -23,19 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <head>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Georgia:ital,wghtn@0,400;0,700;1,400;1,700&display=swap');
-          .font-georgia {
-            font-family: 'Georgia', serif;
-          }
-        `}</style>
-      </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${titleFont.variable} ${bodyFont.variable} ${hindiFont.variable} antialiased`}>
+      <body className="min-h-screen">{children}</body>
     </html>
   );
 }
