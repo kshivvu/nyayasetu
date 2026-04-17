@@ -18,8 +18,6 @@ class Contact extends React.Component {
 
   handleSubmit = (e) => {
     e.preventDefault();
-    // In production, you would send this data to a backend
-    // For now, just show success message
     this.setState({
       name: '',
       email: '',
@@ -27,7 +25,6 @@ class Contact extends React.Component {
       submitted: true
     });
 
-    // Reset success message after 5 seconds
     setTimeout(() => {
       this.setState({ submitted: false });
     }, 5000);
@@ -36,7 +33,6 @@ class Contact extends React.Component {
   render() {
     return (
       <div className="min-h-screen bg-[#F4F1EB]">
-        {/* Header Section */}
         <section className="bg-[#1A2B4A] text-white py-16 px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 font-georgia">
@@ -48,7 +44,6 @@ class Contact extends React.Component {
           </div>
         </section>
 
-        {/* Contact Form Section */}
         <section className="py-16 px-4">
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-xl shadow-lg p-8">
@@ -64,7 +59,6 @@ class Contact extends React.Component {
                 </div>
               ) : (
                 <form onSubmit={this.handleSubmit}>
-                  {/* Name Field */}
                   <div className="mb-6">
                     <label
                       htmlFor="name"
@@ -84,7 +78,6 @@ class Contact extends React.Component {
                     />
                   </div>
 
-                  {/* Email Field */}
                   <div className="mb-6">
                     <label
                       htmlFor="email"
@@ -104,7 +97,6 @@ class Contact extends React.Component {
                     />
                   </div>
 
-                  {/* Message Field */}
                   <div className="mb-6">
                     <label
                       htmlFor="message"
@@ -124,7 +116,6 @@ class Contact extends React.Component {
                     />
                   </div>
 
-                  {/* Submit Button */}
                   <button
                     type="submit"
                     className="w-full bg-[#E8762D] hover:bg-[#d66520] text-white font-bold py-4 px-8 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
@@ -137,14 +128,12 @@ class Contact extends React.Component {
           </div>
         </section>
 
-        {/* Team Section */}
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-[#1A2B4A] mb-12 font-georgia">
               Meet the Team
             </h2>
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Team Member 1 */}
               <div className="bg-[#F4F1EB] rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="w-24 h-24 bg-[#1A2B4A] rounded-full mx-auto mb-4 flex items-center justify-center">
                   <span className="text-3xl text-white">👨‍💻</span>
@@ -158,7 +147,6 @@ class Contact extends React.Component {
                 </p>
               </div>
 
-              {/* Team Member 2 */}
               <div className="bg-[#F4F1EB] rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="w-24 h-24 bg-[#1A2B4A] rounded-full mx-auto mb-4 flex items-center justify-center">
                   <span className="text-3xl text-white">🎨</span>
@@ -173,7 +161,6 @@ class Contact extends React.Component {
               </div>
             </div>
 
-            {/* Additional Info */}
             <div className="mt-12 text-center">
               <div className="bg-[#1A2B4A] text-white rounded-xl p-8">
                 <h3 className="text-2xl font-bold mb-4 font-georgia">
@@ -196,7 +183,6 @@ class Contact extends React.Component {
           </div>
         </section>
 
-        {/* Contact Info Section */}
         <section className="py-16 px-4">
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-3 gap-6 text-center">

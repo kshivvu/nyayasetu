@@ -71,17 +71,102 @@ export default function AppPage() {
       return;
     }
 
+    const preprocessImageForOcr = async (imageFile) => {
+      const objectUrl = URL.createObjectURL(imageFile);
+      try {
+        const image = await new Promise((resolve, reject) => {
+          const img = new window.Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Could not read image for OCR."));
+          img.src = objectUrl;
+        });
+
+        const maxWidth = 2200;
+        const scale = image.width > maxWidth ? maxWidth / image.width : 1;
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) {
+          throw new Error("Could not prepare image canvas for OCR.");
+        }
+
+        context.drawImage(image, 0, 0, width, height);
+        const imgData = context.getImageData(0, 0, width, height);
+        const pixels = imgData.data;
+
+        // Convert to high-contrast grayscale to reduce background security patterns.
+        for (let i = 0; i < pixels.length; i += 4) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          const contrastBoost = gray > 165 ? 255 : gray < 105 ? 0 : gray;
+
+          pixels[i] = contrastBoost;
+          pixels[i + 1] = contrastBoost;
+          pixels[i + 2] = contrastBoost;
+        }
+
+        context.putImageData(imgData, 0, 0);
+        return canvas;
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    const cleanExtractedText = (data) => {
+      const words = Array.isArray(data?.words) ? data.words : [];
+      const textByConfidence =
+        words.length > 0
+          ? words
+              .filter((word) => {
+                const value = (word?.text || "").trim();
+                return value && (word?.confidence ?? 0) >= 45;
+              })
+              .map((word) => word.text)
+              .join(" ")
+          : "";
+
+      const baseText = (textByConfidence || data?.text || "").replace(/\r/g, "");
+      return baseText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length >= 3)
+        .filter((line) => /[a-zA-Z\u0900-\u097F]/.test(line))
+        .join("\n");
+    };
+
+    const tryExtractWithLanguage = async (createWorker, lang) => {
+      const worker = await createWorker(lang);
+      try {
+        const preprocessedCanvas = await preprocessImageForOcr(file);
+        const { data } = await worker.recognize(preprocessedCanvas);
+        return cleanExtractedText(data);
+      } finally {
+        await worker.terminate();
+      }
+    };
+
     try {
       setError("");
       setOcrNote("Reading image... this can take a few seconds.");
       setIsExtracting(true);
 
       const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker("eng+hin");
-      const { data } = await worker.recognize(file);
-      await worker.terminate();
+      let extracted = "";
 
-      const extracted = (data?.text || "").trim();
+      try {
+        extracted = await tryExtractWithLanguage(createWorker, "eng+hin");
+      } catch {
+        // Fallback to English if Hindi+English model cannot load in current network/runtime.
+        extracted = await tryExtractWithLanguage(createWorker, "eng");
+      }
+
       if (!extracted) {
         throw new Error("No text found in image. Try a clearer image with better lighting.");
       }
@@ -89,7 +174,8 @@ export default function AppPage() {
       setText((prev) => `${prev}\n${extracted}`.trim());
       setOcrNote(`Extracted text from ${file.name}.`);
     } catch (ocrError) {
-      setError(ocrError.message || "Could not extract text from image.");
+      const message = ocrError instanceof Error ? ocrError.message : "Could not extract text from image.";
+      setError(message);
       setOcrNote("");
     } finally {
       setIsExtracting(false);

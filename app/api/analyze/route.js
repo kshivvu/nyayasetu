@@ -1,5 +1,6 @@
 const ANTHROPIC_MODEL = "claude-3-5-sonnet-latest";
 const GEMINI_MODEL = "gemini-1.5-flash";
+import { buildRagContext } from "../../../lib/rag";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -141,17 +142,19 @@ function parseJsonFromText(text) {
   }
 }
 
-async function buildUsingClaude(documentText) {
+async function buildUsingClaude(documentText, ragContextText = "") {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return null;
   }
 
-  const vakilPrompt = `You are Vakil, an expert Indian lawyer. Analyse the document and reply as strict JSON with keys: flaggedClauses (array of objects with clause, riskLevel, whyRisky, whatToDo), unseen (array of strings), vakilSummary (string). Document: ${documentText}`;
+  const referenceBlock = ragContextText ? `\n\nUse the following retrieved legal reference context while analysing:\n${ragContextText}` : "";
 
-  const aadmiPrompt = `You are Aam Aadmi. Explain the document in simple Hindi and return JSON only with key aamAadmiSummary. Document: ${documentText}`;
+  const vakilPrompt = `You are Vakil, an expert Indian lawyer. Analyse the document and reply as strict JSON with keys: flaggedClauses (array of objects with clause, riskLevel, whyRisky, whatToDo), unseen (array of strings), vakilSummary (string).${referenceBlock}\n\nDocument: ${documentText}`;
 
-  const judgePrompt = `You are Nyayaadheesh. Return JSON only with keys: riskScore (1-10 number), recommendation (Sign/Negotiate/Reject), summaryEn, summaryHi, actions (array of 3 strings), judgeSummary. Document: ${documentText}`;
+  const aadmiPrompt = `You are Aam Aadmi. Explain the document in simple Hindi and return JSON only with key aamAadmiSummary.${referenceBlock}\n\nDocument: ${documentText}`;
+
+  const judgePrompt = `You are Nyayaadheesh. Return JSON only with keys: riskScore (1-10 number), recommendation (Sign/Negotiate/Reject), summaryEn, summaryHi, actions (array of 3 strings), judgeSummary.${referenceBlock}\n\nDocument: ${documentText}`;
 
   const [vakilRaw, aadmiRaw, judgeRaw] = await Promise.all([
     askClaude(apiKey, vakilPrompt),
@@ -185,17 +188,19 @@ async function buildUsingClaude(documentText) {
   };
 }
 
-async function buildUsingGemini(documentText) {
+async function buildUsingGemini(documentText, ragContextText = "") {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return null;
   }
 
-  const vakilPrompt = `You are Vakil, an expert Indian lawyer. Analyse the document and reply only in strict JSON with keys: flaggedClauses (array of objects with id, clause, riskLevel, whyRisky, whatToDo), unseen (array of strings), vakilSummary (string). Document: ${documentText}`;
+  const referenceBlock = ragContextText ? `\n\nUse the following retrieved legal reference context while analysing:\n${ragContextText}` : "";
 
-  const aadmiPrompt = `You are Aam Aadmi. Explain the document in simple Hindi and reply only in strict JSON with key aamAadmiSummary. Document: ${documentText}`;
+  const vakilPrompt = `You are Vakil, an expert Indian lawyer. Analyse the document and reply only in strict JSON with keys: flaggedClauses (array of objects with id, clause, riskLevel, whyRisky, whatToDo), unseen (array of strings), vakilSummary (string).${referenceBlock}\n\nDocument: ${documentText}`;
 
-  const judgePrompt = `You are Nyayaadheesh. Reply only in strict JSON with keys: riskScore (1-10 number), recommendation (Sign/Negotiate/Reject), summaryEn, summaryHi, actions (array of 3 strings), judgeSummary. Document: ${documentText}`;
+  const aadmiPrompt = `You are Aam Aadmi. Explain the document in simple Hindi and reply only in strict JSON with key aamAadmiSummary.${referenceBlock}\n\nDocument: ${documentText}`;
+
+  const judgePrompt = `You are Nyayaadheesh. Reply only in strict JSON with keys: riskScore (1-10 number), recommendation (Sign/Negotiate/Reject), summaryEn, summaryHi, actions (array of 3 strings), judgeSummary.${referenceBlock}\n\nDocument: ${documentText}`;
 
   const [vakilRaw, aadmiRaw, judgeRaw] = await Promise.all([
     askGemini(apiKey, vakilPrompt),
@@ -248,16 +253,17 @@ export async function POST(request) {
 
     let geminiResult = null;
     let anthropicResult = null;
+    const rag = buildRagContext(documentText);
 
     try {
-      geminiResult = await buildUsingGemini(documentText);
+      geminiResult = await buildUsingGemini(documentText, rag.contextText);
     } catch (error) {
       console.error("Gemini provider error:", error);
     }
 
     if (!geminiResult) {
       try {
-        anthropicResult = await buildUsingClaude(documentText);
+        anthropicResult = await buildUsingClaude(documentText, rag.contextText);
       } catch (error) {
         console.error("Anthropic provider error:", error);
       }
@@ -268,6 +274,8 @@ export async function POST(request) {
     return Response.json({
       ...payload,
       documentPreview: documentText.slice(0, 400),
+      retrieval: rag.retrieval,
+      ragEnabled: rag.retrieval.length > 0,
     });
   } catch {
     return Response.json(

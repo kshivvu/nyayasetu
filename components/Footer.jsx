@@ -12,7 +12,6 @@ class Footer extends React.Component {
 
     return (
       <footer className="bg-[#1A2B4A] text-white">
-        {/* Main Footer Section */}
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="grid md:grid-cols-4 gap-8">
             {/* Brand Section */}

@@ -82,7 +82,6 @@ class About extends React.Component {
                 </ul>
               </div>
 
-              {/* Aam Aadmi */}
               <div className="bg-[#F4F1EB] rounded-xl p-8 border-l-4 border-[#F5B942]">
                 <div className="text-4xl mb-4">🧑‍🌾</div>
                 <h3 className="text-2xl font-bold text-[#1A2B4A] mb-2 font-georgia">
@@ -113,7 +112,6 @@ class About extends React.Component {
                 </ul>
               </div>
 
-              {/* Nyayaadheesh */}
               <div className="bg-[#F4F1EB] rounded-xl p-8 border-l-4 border-[#1A2B4A]">
                 <div className="text-4xl mb-4">🏛️</div>
                 <h3 className="text-2xl font-bold text-[#1A2B4A] mb-2 font-georgia">
@@ -147,7 +145,6 @@ class About extends React.Component {
           </div>
         </section>
 
-        {/* The Unseen Feature Section */}
         <section className="py-16 px-4">
           <div className="max-w-4xl mx-auto">
             <div className="bg-[#1A2B4A] text-white rounded-xl shadow-lg p-8">
@@ -171,14 +168,12 @@ class About extends React.Component {
           </div>
         </section>
 
-        {/* Target Users Section */}
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-[#1A2B4A] mb-12 font-georgia">
               Who is NyayaSetu For?
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* College Student */}
               <div className="bg-[#F4F1EB] rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="text-4xl mb-4">🎓</div>
                 <h3 className="text-lg font-bold text-[#1A2B4A] mb-2">College Students</h3>
@@ -187,7 +182,6 @@ class About extends React.Component {
                 </p>
               </div>
 
-              {/* Tenant */}
               <div className="bg-[#F4F1EB] rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="text-4xl mb-4">🏠</div>
                 <h3 className="text-lg font-bold text-[#1A2B4A] mb-2">Tenants</h3>
@@ -196,7 +190,6 @@ class About extends React.Component {
                 </p>
               </div>
 
-              {/* First-Jobber */}
               <div className="bg-[#F4F1EB] rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="text-4xl mb-4">💼</div>
                 <h3 className="text-lg font-bold text-[#1A2B4A] mb-2">First-Jobbers</h3>
@@ -205,7 +198,6 @@ class About extends React.Component {
                 </p>
               </div>
 
-              {/* Citizen */}
               <div className="bg-[#F4F1EB] rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="text-4xl mb-4">🇮🇳</div>
                 <h3 className="text-lg font-bold text-[#1A2B4A] mb-2">Citizens</h3>
@@ -217,7 +209,6 @@ class About extends React.Component {
           </div>
         </section>
 
-        {/* Footer Tagline Section */}
         <section className="py-12 px-4 bg-[#E8762D]">
           <div className="max-w-4xl mx-auto text-center">
             <p className="text-2xl md:text-3xl font-bold text-white font-georgia">
