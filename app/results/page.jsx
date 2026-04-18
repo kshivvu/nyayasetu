@@ -5,10 +5,42 @@ import { useEffect, useState } from "react";
 import { PageWrap, SiteFooter, SiteHeader } from "../../components/SiteShell";
 import { readAnalysis } from "../../lib/analysis-storage";
 
+async function loadLatestAnalysis() {
+  try {
+    const response = await fetch("/api/analyses", { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return payload?.analysis || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ResultsPage() {
-  const [result] = useState(() => readAnalysis());
+  const [result, setResult] = useState(() => readAnalysis());
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechError, setSpeechError] = useState("");
+
+  useEffect(() => {
+    if (result) {
+      return;
+    }
+
+    let isActive = true;
+
+    loadLatestAnalysis().then((latest) => {
+      if (isActive && latest) {
+        setResult(latest);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [result]);
 
   useEffect(() => {
     return () => {

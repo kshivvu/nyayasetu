@@ -74,12 +74,18 @@ export default function AppPage() {
     const preprocessImageForOcr = async (imageFile) => {
       const objectUrl = URL.createObjectURL(imageFile);
       try {
-        const image = await new Promise((resolve, reject) => {
-          const img = new window.Image();
-          img.onload = () => resolve(img);
-          img.onerror = () => reject(new Error("Could not read image for OCR."));
-          img.src = objectUrl;
-        });
+        let image;
+
+        if (window.createImageBitmap) {
+          image = await window.createImageBitmap(imageFile);
+        } else {
+          image = await new Promise((resolve, reject) => {
+            const img = new window.Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("Could not read image for OCR."));
+            img.src = objectUrl;
+          });
+        }
 
         const maxWidth = 2200;
         const scale = image.width > maxWidth ? maxWidth / image.width : 1;
@@ -99,7 +105,6 @@ export default function AppPage() {
         const imgData = context.getImageData(0, 0, width, height);
         const pixels = imgData.data;
 
-        // Convert to high-contrast grayscale to reduce background security patterns.
         for (let i = 0; i < pixels.length; i += 4) {
           const r = pixels[i];
           const g = pixels[i + 1];
@@ -120,24 +125,31 @@ export default function AppPage() {
     };
 
     const cleanExtractedText = (data) => {
+      const lineText = Array.isArray(data?.lines)
+        ? data.lines
+            .map((line) => (line?.text || "").trim())
+            .filter((line) => line.length >= 2)
+            .join("\n")
+        : "";
+
       const words = Array.isArray(data?.words) ? data.words : [];
       const textByConfidence =
         words.length > 0
           ? words
               .filter((word) => {
                 const value = (word?.text || "").trim();
-                return value && (word?.confidence ?? 0) >= 45;
+                return value && (word?.confidence ?? 0) >= 30;
               })
               .map((word) => word.text)
               .join(" ")
           : "";
 
-      const baseText = (textByConfidence || data?.text || "").replace(/\r/g, "");
+      const baseText = (lineText || textByConfidence || data?.text || "").replace(/\r/g, "");
       return baseText
         .split("\n")
         .map((line) => line.trim())
         .filter((line) => line.length >= 3)
-        .filter((line) => /[a-zA-Z\u0900-\u097F]/.test(line))
+        .filter((line) => /[a-zA-Z0-9\u0900-\u097F]/.test(line))
         .join("\n");
     };
 
@@ -158,13 +170,19 @@ export default function AppPage() {
       setIsExtracting(true);
 
       const { createWorker } = await import("tesseract.js");
+      const languageAttempts = language === "bilingual" ? ["eng+hin", "eng", "hin"] : ["eng", "hin"];
       let extracted = "";
 
-      try {
-        extracted = await tryExtractWithLanguage(createWorker, "eng+hin");
-      } catch {
-        // Fallback to English if Hindi+English model cannot load in current network/runtime.
-        extracted = await tryExtractWithLanguage(createWorker, "eng");
+      for (const attemptLanguage of languageAttempts) {
+        try {
+          setOcrNote(`Reading image... trying ${attemptLanguage.toUpperCase()}.`);
+          extracted = await tryExtractWithLanguage(createWorker, attemptLanguage);
+          if (extracted.length >= 20) {
+            break;
+          }
+        } catch {
+          extracted = "";
+        }
       }
 
       if (!extracted) {
@@ -334,7 +352,7 @@ export default function AppPage() {
 
             <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-[color:var(--ink)]/65">
               <p>{charCount} characters</p>
-              <p className="font-hindi">कोई लॉगिन नहीं, कोई डेटा स्टोरेज नहीं</p>
+              <p className="font-hindi">कोई लॉगिन नहीं, विश्लेषण MongoDB में सुरक्षित रहता है</p>
             </div>
 
             {ocrNote ? <p className="mt-3 rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-800">{ocrNote}</p> : null}

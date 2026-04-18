@@ -1,6 +1,9 @@
 const ANTHROPIC_MODEL = "claude-3-5-sonnet-latest";
 const GEMINI_MODEL = "gemini-1.5-flash";
 import { buildRagContext } from "../../../lib/rag";
+import { storeAnalysisRecord } from "../../../lib/analysis-db";
+
+export const runtime = "nodejs";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -271,11 +274,26 @@ export async function POST(request) {
 
     const payload = geminiResult || anthropicResult || buildMock(documentText);
 
+    let storedAnalysis = null;
+    try {
+      storedAnalysis = await storeAnalysisRecord({
+        ...payload,
+        documentText,
+        documentPreview: documentText.slice(0, 400),
+        retrieval: rag.retrieval,
+        ragEnabled: rag.retrieval.length > 0,
+      });
+    } catch (error) {
+      console.error("Failed to persist analysis:", error);
+    }
+
     return Response.json({
       ...payload,
       documentPreview: documentText.slice(0, 400),
       retrieval: rag.retrieval,
       ragEnabled: rag.retrieval.length > 0,
+      analysisId: storedAnalysis?._id || null,
+      storedInMongo: Boolean(storedAnalysis),
     });
   } catch {
     return Response.json(

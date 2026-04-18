@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment
+
+Set `MONGODB_URI` to a MongoDB Atlas or local MongoDB connection string to persist analysis history.
+
 ## Getting Started
 
 First, run the development server:
